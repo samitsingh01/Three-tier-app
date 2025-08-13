@@ -9,4 +9,4 @@ spec:
     - protocol: TCP
       port: 31222        # Service port
       targetPort: 5000  # Container port
-  type: clusterIP      # Internal only (use NodePort/LoadBalancer if exposing outside)
+  type: ClusterIP      # Internal only (use NodePort/LoadBalancer if exposing outside)
