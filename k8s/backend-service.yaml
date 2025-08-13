@@ -7,7 +7,6 @@ spec:
     app: todo-backend
   ports:
     - protocol: TCP
-      port: 5000        # Service port
+      port: 31222        # Service port
       targetPort: 5000  # Container port
-      nodeport: 31222
-  type: NodePort      # Internal only (use NodePort/LoadBalancer if exposing outside)
+  type: clusterIP      # Internal only (use NodePort/LoadBalancer if exposing outside)
