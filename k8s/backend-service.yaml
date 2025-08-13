@@ -10,4 +10,4 @@ spec:
       port: 5000        # Service port
       targetPort: 5000  # Container port
       nodeport: 31222
-  type: ClusterIP      # Internal only (use NodePort/LoadBalancer if exposing outside)
+  type: NodePort      # Internal only (use NodePort/LoadBalancer if exposing outside)
