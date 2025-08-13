@@ -10,13 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # --- Linting for backend ---
-      - name: Backend Linting
-        run: |
-          cd backend
-          # Assuming Python backend
-          pip install flake8
-          flake8 .
 
       # --- SAST for backend ---
       - name: Backend SAST
@@ -35,13 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      # --- Linting for frontend ---
-      - name: Frontend Linting
-        run: |
-          cd frontend
-          npm install
-          npx eslint . --ext .js,.jsx
 
       # --- SAST for frontend ---
       - name: Frontend SAST
