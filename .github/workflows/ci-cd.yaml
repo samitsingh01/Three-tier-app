@@ -39,7 +39,7 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/3-tier-app-backend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/3-tier-app-frontend:latest
 
   k8s-yaml-deploy:
     runs-on: self-hosted
