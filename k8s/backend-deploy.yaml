@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: todo-backend
-  namespace: default   # Change if needed
 spec:
   replicas: 2
   selector:
