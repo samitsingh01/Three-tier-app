@@ -5,7 +5,7 @@ function App() {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
 
-  const API_URL = 'http://todo-backend.svc.cluster.local:31222/todos'; // Update if your Flask runs elsewhere
+  const API_URL = 'http://todo-backend.default.svc.cluster.local:31222/todos'; // Update if your Flask runs elsewhere
 
   // Fetch todos on component mount
   useEffect(() => {
