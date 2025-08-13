@@ -7,8 +7,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    steps:
 
+    steps:
       - uses: actions/checkout@v3
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -22,3 +22,16 @@ jobs:
           context: ./backend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/3-tier-app-backend:latest
+
+  k8s-yaml-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -f k8s/ -n code-analyzer
+
+      - name: Restart Kubernetes api-resources
+        run: kubectl rollout restart deployment,statefulset -n code-analyzer
