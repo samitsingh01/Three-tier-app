@@ -1,15 +1,17 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
 
 app = Flask(__name__)
+CORS(app)
 
 # MySQL connection configuration
 db_config = {
     'host': 'mysql.default.svc.cluster.local',
     'user': 'root',
-    'password': 'yourpassword',
-    'database': 'todo_db'
+    'password': 'root',
+    'database': 'TODOLIST'
 }
 
 # Helper function to get MySQL connection
