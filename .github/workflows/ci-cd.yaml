@@ -13,131 +13,148 @@ defaults:
     shell: bash
 
 jobs:
-  # ---------------- Backend Lint ----------------
+  # ---------------- Backend Linting ----------------
   backend-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout backend
         uses: actions/checkout@v3
+
       - name: Install backend linter
         run: |
           python -m pip install --upgrade pip
           pip install flake8
+
       - name: Run backend lint
         run: flake8 ./backend || true
 
-  # ---------------- Frontend Lint ----------------
-  frontend-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout frontend
-        uses: actions/checkout@v3
-      - name: Install frontend dependencies
-        run: npm install --prefix frontend
-      - name: Run frontend lint
-        run: npm run lint --prefix frontend || true
-
-  # ---------------- Backend SAST ----------------
-  backend-sast:
-    runs-on: ubuntu-latest
-    needs: backend-lint
-    steps:
-      - name: Checkout backend
-        uses: actions/checkout@v3
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: python
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        continue-on-error: true
-
-  # ---------------- Frontend SAST ----------------
-  frontend-sast:
-    runs-on: ubuntu-latest
-    needs: frontend-lint
-    steps:
-      - name: Checkout frontend
-        uses: actions/checkout@v3
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        continue-on-error: true
-
-  # ---------------- Backend Dependency Scan ----------------
-  backend-security-checks:
-    runs-on: ubuntu-latest
-    needs: backend-sast
-    steps:
-      - name: Checkout backend
-        uses: actions/checkout@v3
-      - name: Backend Dependency Scan
-        run: |
-          npm install -g snyk
-          snyk test || true
-
-  # ---------------- Frontend Dependency Scan ----------------
-  frontend-security-checks:
-    runs-on: ubuntu-latest
-    needs: frontend-sast
-    steps:
-      - name: Checkout frontend
-        uses: actions/checkout@v3
-      - name: Frontend Dependency Scan
-        run: |
-          npm install -g snyk
-          snyk test || true
-
   # ---------------- Backend Unit Tests ----------------
   backend-unit-tests:
+    needs: backend-lint
     runs-on: ubuntu-latest
-    needs: backend-security-checks
     steps:
       - name: Checkout backend
         uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest
+
       - name: Run backend unit tests
         run: pytest backend/tests || true
 
-  # ---------------- Frontend Unit Tests ----------------
-  frontend-unit-tests:
+  # ---------------- Backend SAST ----------------
+  backend-sast:
+    needs: backend-unit-tests
     runs-on: ubuntu-latest
-    needs: frontend-security-checks
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+  # ---------------- Frontend Linting ----------------
+  frontend-lint:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v3
+
+      - name: Install frontend dependencies
+        run: npm install --prefix frontend
+
+      - name: Run frontend lint
+        run: npm run lint --prefix frontend || true
+
+  # ---------------- Frontend Unit Tests ----------------
+  frontend-unit-tests:
+    needs: frontend-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v3
+
       - name: Install dependencies
         run: npm install --prefix frontend
+
       - name: Run frontend unit tests
         run: npm test --prefix frontend -- --watchAll=false || true
 
-  # ---------------- Docker Build & Push ----------------
-  docker-build-and-push:
+  # ---------------- Frontend SAST ----------------
+  frontend-sast:
+    needs: frontend-unit-tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+  # ---------------- Backend Security Checks ----------------
+  backend-security-checks:
+    needs: backend-sast
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v3
+
+      - name: Backend Dependency Scan
+        run: |
+          npm install -g snyk
+          snyk test || true
+
+  # ---------------- Frontend Security Checks ----------------
+  frontend-security-checks:
+    needs: frontend-sast
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v3
+
+      - name: Frontend Dependency Scan
+        run: |
+          npm install -g snyk
+          snyk test || true
+
+  # ---------------- Docker Build and Push ----------------
+  docker-build-and-push:
     needs:
-      - backend-unit-tests
-      - frontend-unit-tests
+      - backend-security-checks
+      - frontend-security-checks
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/3-tier-app-backend:latest
+
       - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
@@ -145,12 +162,13 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/3-tier-app-frontend:latest
 
-  # ---------------- Kubernetes Deploy (Self-hosted) ----------------
+  # ---------------- Kubernetes Deployment ----------------
   k8s-yaml-deploy:
-    runs-on: self-hosted
     needs: docker-build-and-push
+    runs-on: self-hosted
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+
       - name: Apply Kubernetes manifests
         run: kubectl apply -f k8s/
